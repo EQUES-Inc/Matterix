@@ -414,8 +414,8 @@ def configure_front_camera(env) -> None:
     camera = base_env.scene[args.primary_camera_name]
 
     eyes = torch.tensor(
-        # [[0.90, -0.15, 0.58]], #oblique front camera
-        [[0.90, 0.00, 0.58]],    #frontal front camera
+        [[0.90, -0.15, 0.58]], #oblique front camera
+        # [[0.90, 0.00, 0.58]],    #frontal front camera
         device=base_env.device,
         dtype=torch.float32,
     )
