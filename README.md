@@ -2,6 +2,14 @@
 
 Matterixサーバ側の実装。[推論側](https://github.com/EQUES-Inc/VLA-JEPA)
 
+## 環境構築
+
+公式のMatterixに従って環境構築を行う。
+```
+conda activate matterix
+```
+
+
 ## Standard experiment
 
 初期のシーン
@@ -20,9 +28,6 @@ bash server.sh # scripts/matterix_server.pyが本体
 ```
 
 起動させたまま別のターミナル等で推論コードを実行する。
-
-
-
 
 
 ## Beaker and Blue cylinder experiment
@@ -76,6 +81,22 @@ Front cameraの撮影角度2種：
         dtype=torch.float32,
     )
 ```
+
+
+自動成功判定：  
+
+`scripts/matterix_server_beaker_cylinder.py`に定義されている。1284行目付近
+```
+success = beaker_success #どちらか一方を選択
+success = blue_cylinder_success #どちらか一方を選択
+```
+
+Ground truthとして採用したいオブジェクトに応じて切り替える。
+これにより後続のVLA-JEPAの成功判定を自動で行うことができる。
+成功判定の基準としては、「5cm持ち上げたかどうか」を採用している。server.shの `--lift-threshold 0.05`を参照。
+
+※ なお、自動成功判定を利用しないのであればsuccess/failureの表示が事実と異なるだけであって、推論自体・結果の動画取得自体は問題なく行える。その場合、VLA-JEPA推論再度の`eval.sh`が出力するSuccess Rateの数字は信用しないように。
+
 
 プロンプトや初期位置の左右（Beaker vs Cylinder）の指定は[VLA-JEPAの推論側の実行スクリプト](https://github.com/EQUES-Inc/VLA-JEPA)で切り替える。
 
