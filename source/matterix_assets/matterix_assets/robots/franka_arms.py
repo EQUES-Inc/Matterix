@@ -9,6 +9,7 @@ The following configurations are available:
 
 * :obj:`FRANKA_ROBOTI2F85_INST_CFG`: Instantiated Franka Emika Panda robot with ROBOTIQ 2F85 gripper
 * :obj:`FRANKA_ROBOTIQ2F85_INST_HIGH_PD_CFG`: Franka Emika Panda robot with Robotiq 2F85 gripper with stiffer PD control
+* :obj:`FRANKA_LLINK_ROBOTIQ2F85_CFG`: Franka with the L-link-mounted Robotiq 2F-85 used in Matterix demonstrations
 * :obj:`FRANKA_PANDA_CFG`: Instantiated Franka Emika Panda robot
 * :obj:`FRANKA_PANDA_HIGH_PD_CFG`: Franka Emika Panda robot with stiffer PD control
 * :obj:`FRANKA_PANDA_HIGH_PD_IK_CFG`: Franka Emika Panda robot with stiffer PD control and differential IK action
@@ -155,6 +156,116 @@ class FRANKA_ROBOTIQ2F85_INST_HIGH_PD_CFG(FRANKA_ROBOTI2F85_INST_CFG):
 
 This configuration is useful for task-space control using differential IK.
 """
+
+
+@configclass
+class FRANKA_LLINK_ROBOTIQ2F85_CFG(MatterixArticulationCfg):
+    """Franka with the demonstration L-link and task-space Robotiq control."""
+
+    spawn = sim_utils.UsdFileCfg(
+        usd_path=(
+            f"{MATTERIX_ASSETS_DATA_DIR}/robots/franka/franka-llink-robotiq85/"
+            "franka-llink-robotiq85-inst.usda"
+        ),
+        activate_contact_sensors=False,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=True,
+            max_depenetration_velocity=5.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True,
+            solver_position_iteration_count=8,
+            solver_velocity_iteration_count=0,
+        ),
+    )
+    init_state = ArticulationCfg.InitialStateCfg()
+    init_state.joint_pos = {
+        "panda_joint1": 0.0444,
+        "panda_joint2": -0.1894,
+        "panda_joint3": -0.1107,
+        "panda_joint4": -2.5148,
+        "panda_joint5": 0.0044,
+        "panda_joint6": 2.3775,
+        "panda_joint7": 0.6952,
+        "^(?!panda_joint[1-7]$).*$": 0.0,
+    }
+    actuators = {
+        "panda_shoulder": ImplicitActuatorCfg(
+            joint_names_expr=["panda_joint[1-4]"],
+            effort_limit_sim=87.0,
+            velocity_limit_sim=2.175,
+            stiffness=400.0,
+            damping=80.0,
+        ),
+        "panda_forearm": ImplicitActuatorCfg(
+            joint_names_expr=["panda_joint[5-7]"],
+            effort_limit_sim=12.0,
+            velocity_limit_sim=2.61,
+            stiffness=400.0,
+            damping=80.0,
+        ),
+        "robotiq_gripper": ImplicitActuatorCfg(
+            joint_names_expr=[
+                "robotiq_85_left_knuckle_joint",
+                "robotiq_85_right_knuckle_joint",
+            ],
+            effort_limit_sim=200.0,
+            velocity_limit_sim=1.0,
+            stiffness=2000.0,
+            damping=100.0,
+        ),
+    }
+    soft_joint_pos_limit_factor = 1.0
+    action_terms = {
+        "arm_action": DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["panda_joint.*"],
+            body_name="virtual_eef_link",
+            controller=DifferentialIKControllerCfg(
+                command_type="pose",
+                use_relative_mode=False,
+                ik_method="dls",
+            ),
+        ),
+        "gripper_action": mdp.BinaryJointPositionActionCfg(
+            joint_names=[
+                "robotiq_85_left_knuckle_joint",
+                "robotiq_85_right_knuckle_joint",
+            ],
+            open_command_expr={"robotiq_85_.*_knuckle_joint": 0.0},
+            close_command_expr={"robotiq_85_.*_knuckle_joint": 0.8},
+        ),
+    }
+    event_terms = {}
+    sensors = {
+        "ee_frame": FrameTransformerCfg(
+            prim_path="/panda_link0",
+            debug_vis=False,
+            visualizer_cfg=marker_cfg,
+            target_frames=[
+                FrameTransformerCfg.FrameCfg(
+                    prim_path="/virtual_eef_link",
+                    name="end_effector",
+                ),
+            ],
+        ),
+        "grasping_frame": FrameTransformerCfg(
+            prim_path="/panda_link0",
+            debug_vis=False,
+            visualizer_cfg=marker_cfg,
+            target_frames=[
+                FrameTransformerCfg.FrameCfg(
+                    prim_path="/virtual_eef_link",
+                    name="grasping_frame",
+                    offset=OffsetCfg(rot=(0.0, 1.0, 0.0, 0.0)),
+                ),
+            ],
+        ),
+    }
+    semantic_tags = [("class", "robot")]
+
+
+"""Configuration for visually inspecting the L-link-mounted Robotiq 2F-85 setup."""
 
 
 @configclass

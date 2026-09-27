@@ -1,3 +1,89 @@
+# Matterix + VLA-JEPA Experiments
+
+Matterixサーバ側の実装。
+
+## Standard experiment
+
+初期のシーン
+- `matterix_front_camera.png`
+- `matterix_wrist_camera.png`
+
+定義タスク.  
+`source/matterix_tasks/matterix_tasks/test_dev_tasks/test_franka_beaker_lift.py`を参照。
+    - デフォルトのembodiment: Franka Panda + standard Panda gripper
+    - 初期位置についてはxy方向それぞれに2cmのrandom noise
+
+
+Matterixサーバの起動
+```
+bash server.sh # scripts/matterix_server.pyが本体
+```
+
+起動させたまま別のターミナル等で推論コードを実行する。
+
+
+
+
+
+## Beaker and Blue cylinder experiment
+
+**目的：VLAのspatial biasに左右差や対象オブジェクト間差があるかをpick upタスクで検証する。**
+
+
+定義タスク. 
+`source/matterix_tasks/matterix_tasks/test_dev_tasks/test_franka_beaker_cylinder_lift.py`を参照。
+
+
+Matterixサーバの起動
+```
+bash server.sh # scripts/matterix_server_beaker_cylinder.pyが本体
+```
+
+
+独自オブジェクト
+
+`source/matterix_assets/matterix_assets/labware`以下にbottles等を配置した。
+
+
+
+オブジェクトの初期位置：`source/matterix_tasks/matterix_tasks/test_dev_tasks/test_franka_beaker_cylinder_lift.py`内の287行目
+```
+    objects = {
+        "beaker": BEAKER_500ML_INST_CFG(
+            pos=(0.60, -0.12, 0.05),
+        ),
+
+        "blue_cylinder": BOTTLE_INST_CFG(
+            pos=(0.60, 0.12, 0.05),
+        ),
+
+        "table": TABLE_SEATTLE_INST_Cfg(
+            pos=(0.50, 0.00, 0.00),
+        ),
+    }
+
+```
+
+Front cameraの撮影角度2種：
+
+`scripts/matterix_server_beaker_cylinder.py`内の`configure_front_camera()`関数で定義されている。obliqueかfrontalのどちらかの画角を選択する。
+
+```
+    eyes = torch.tensor(
+        # [[0.90, -0.15, 0.58]], #oblique front camera
+        [[0.90, 0.00, 0.58]],    #frontal front camera
+        device=base_env.device,
+        dtype=torch.float32,
+    )
+```
+
+プロンプトや初期位置の左右（Beaker vs Cylinder）の指定は[VLA-JEPAの推論側の実行スクリプト](https://github.com/EQUES-Inc/VLA-JEPA)で切り替える。
+
+
+
+
+---
+
 # Matterix
 
 

@@ -14,6 +14,7 @@ from matterix_assets.labware.bottles import BOTTLE_INST_CFG
 from matterix_assets.labware.flasks import FLASK_INST_CFG
 from matterix_assets.labware.trays import TRAY_INST_CFG
 
+
 from matterix_assets.robots import (
     FRANKA_PANDA_HIGH_PD_IK_CFG,
     FRANKA_LLINK_ROBOTIQ2F85_CFG
@@ -89,18 +90,39 @@ class EventCfg(EventManagerCfg):
         mode="reset",
     )
 
-    # Randomize beaker position on reset
+    # Controlled position jitter for the two target objects.
+    #
+    # Important:
+    # - Keep the jitter small so grasp difficulty stays comparable across episodes.
+    # - The collector should reuse the same reset seed for the beaker/cylinder pair.
+    # - To remove the "left means beaker" shortcut completely, use a custom reset
+    #   event that swaps the two anchors 50/50. With only reset_root_state_uniform,
+    #   the two objects keep their own anchor regions.
     randomize_beaker_position = EventTerm(
         func=isaaclab_mdp.reset_root_state_uniform,
         mode="reset",
         params={
             "pose_range": {
-                "x": (-0.1, 0.1),
-                "y": (-0.15, 0.15),
+                "x": (-0.02, 0.02),
+                "y": (-0.02, 0.02),
                 "z": (0.0, 0.0),
             },
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("beaker"),
+        },
+    )
+
+    randomize_blue_cylinder_position = EventTerm(
+        func=isaaclab_mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "pose_range": {
+                "x": (-0.02, 0.02),
+                "y": (-0.02, 0.02),
+                "z": (0.0, 0.0),
+            },
+            "velocity_range": {},
+            "asset_cfg": SceneEntityCfg("blue_cylinder"),
         },
     )
 
@@ -220,6 +242,26 @@ class ObservationManagerCfg:
             },
         )
 
+        blue_cylinder__object_world_pos = ObsTerm(
+            func=mdp.object_world_pos,
+            params={"asset_name": "blue_cylinder"},
+        )
+
+        blue_cylinder__object_world_quat = ObsTerm(
+            func=mdp.object_world_quat,
+            params={"asset_name": "blue_cylinder"},
+        )
+
+        blue_cylinder__object_lin_vel = ObsTerm(
+            func=mdp.object_lin_vel,
+            params={"asset_name": "blue_cylinder"},
+        )
+
+        blue_cylinder__object_ang_vel = ObsTerm(
+            func=mdp.object_ang_vel,
+            params={"asset_name": "blue_cylinder"},
+        )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -244,19 +286,11 @@ class FrankaBeakerLiftEnvTestCfg(MatterixBaseEnvCfg):
 
     objects = {
         "beaker": BEAKER_500ML_INST_CFG(
-            pos=(0.60, -0.00, 0.05),
+            pos=(0.60, -0.12, 0.05),
         ),
 
-        "bottle": BOTTLE_INST_CFG(
-            pos=(0.55, 0.18, 0.05),
-        ),
-
-        "flask": FLASK_INST_CFG(
-            pos=(0.72, 0.20, 0.05),
-        ),
-
-        "tray": TRAY_INST_CFG(
-            pos=(0.75, -0.20, 0.03),
+        "blue_cylinder": BOTTLE_INST_CFG(
+            pos=(0.60, 0.12, 0.05),
         ),
 
         "table": TABLE_SEATTLE_INST_Cfg(
