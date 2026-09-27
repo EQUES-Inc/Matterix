@@ -1,6 +1,6 @@
 # Matterix + VLA-JEPA Experiments
 
-Matterixサーバ側の実装。
+Matterixサーバ側の実装。[推論側](https://github.com/EQUES-Inc/VLA-JEPA)
 
 ## Standard experiment
 
