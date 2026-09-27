@@ -3,8 +3,18 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-##
-# Configuration for different assets.
-##
+"""Laboratory asset configurations."""
 
 from .beakers import *
+from .bottles import BOTTLE_CFG, BOTTLE_INST_CFG
+from .flasks import FLASK_CFG, FLASK_INST_CFG
+from .trays import TRAY_CFG, TRAY_INST_CFG
+
+__all__ = [
+    "BOTTLE_CFG",
+    "BOTTLE_INST_CFG",
+    "FLASK_CFG",
+    "FLASK_INST_CFG",
+    "TRAY_CFG",
+    "TRAY_INST_CFG",
+]

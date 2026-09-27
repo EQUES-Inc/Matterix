@@ -1,0 +1,115 @@
+# Copyright (c) 2022-2026, The Matterix Project Developers.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""Script to run an environment with zero action agent."""
+
+"""Launch Isaac Sim Simulator first."""
+
+import argparse
+
+from isaaclab.app import AppLauncher
+
+# add argparse arguments
+parser = argparse.ArgumentParser(description="Zero agent for matterix environments.")
+parser.add_argument(
+    "--disable_fabric", action="store_true", default=None, help="Disable fabric and use USD I/O operations."
+)
+parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
+parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
+# parse the arguments
+args_cli = parser.parse_args()
+
+# launch omniverse app
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
+
+"""Rest everything follows."""
+
+import gymnasium as gym
+import torch
+
+import matterix_tasks  # noqa: F401
+
+import isaaclab_tasks  # noqa: F401
+from isaaclab_tasks.utils import parse_env_cfg
+
+
+def main():
+    """Zero actions agent with matterix environment."""
+    # parse configuration
+    use_fabric = None if args_cli.disable_fabric is None else not args_cli.disable_fabric
+    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=use_fabric)
+    # create environment
+    print("=============================================")
+    print("[INFO]: Environment created successfully.")
+    print("env_cfg num_envs:", env_cfg.scene.num_envs)
+    print("args_cli num_envs:", args_cli.num_envs)
+
+    env = gym.make(args_cli.task, cfg=env_cfg)
+    print("env_cfg num_envs:", env_cfg.scene.num_envs)
+    print("args_cli num_envs:", args_cli.num_envs)
+    print("=== ACTION MANAGER ===")
+    print(env.unwrapped.action_manager)
+    print("=== ACTION DIM ===")
+    print(env.unwrapped.action_manager.total_action_dim)
+    print("=== ACTION TERMS ===")
+    for name, term in env.unwrapped.action_manager._terms.items():
+        print(
+            name,
+            type(term),
+            getattr(term, "action_dim", None),
+        )
+
+    print("=============================================")
+
+    print("observation_space:", env.observation_space)
+    print("action_space:", env.action_space)
+    
+
+    obs = env.reset()
+
+    print("reset result type:", type(obs))
+
+    if isinstance(obs, tuple):
+        obs = obs[0]
+
+    print("observation type:", type(obs))
+
+    if isinstance(obs, dict):
+        for key, value in obs.items():
+            print(
+                key,
+                type(value),
+                getattr(value, "shape", None),
+            )
+
+    # print info (this is vectorized environment)
+    print(f"[INFO]: Gym observation space: {env.observation_space}")
+    print(f"[INFO]: Gym action space: {env.action_space}")
+    # reset environment
+    env.reset()
+    # simulate environment
+    while simulation_app.is_running():
+        # run everything in inference mode
+        with torch.inference_mode():
+            # compute zero actions
+            actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
+            # apply actions
+            observations, reward, terminated, truncated, info = env.step(actions)
+            print("[zero agent] observations:", observations)
+            print("[zero agent] action shape:", actions.shape)
+            print("[zero agent] action:", actions)
+
+    # close the simulator
+    env.close()
+
+
+if __name__ == "__main__":
+    # run the main function
+    main()
+    # close sim app
+    simulation_app.close()
